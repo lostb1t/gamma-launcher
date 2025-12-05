@@ -67,6 +67,7 @@ else:
         if RarFile is not None:
             RarFile(f).extractall(p)
         else:
+            print("Fallback to 7z for extraction.")
             _7zip_extractall(f, p)
 
     _extract_func_dict = {
