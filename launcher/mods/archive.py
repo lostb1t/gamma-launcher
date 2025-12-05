@@ -58,7 +58,7 @@ else:
     def _7zip_extractall(f: str, p: str) -> None:
         try:
             SevenZipFile(f).extractall(p)
-        except UnsupportedCompressionMethodError as e:
+        except Exception as e:
             print(e)
             print("Fallback to 7z binary for extraction.")
             _7zip_bcj2_workaround(f, p)
