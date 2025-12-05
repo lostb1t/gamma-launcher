@@ -3,11 +3,14 @@ from py7zr import SevenZipFile
 from subprocess import run
 from typing import List
 from py7zr.exceptions import UnsupportedCompressionMethodError
+
 try:
     from unrar.rarfile import RarFile
 except Exception:
     RarFile = None
+
 from zipfile import ZipFile
+
 
 def get_mime_from_file(filename) -> str:
     with open(filename, 'rb') as f:
@@ -19,14 +22,15 @@ def get_mime_from_file(filename) -> str:
         'application/x-7z-compressed': lambda d: d[:6] == b'\x37\x7A\xBC\xAF\x27\x1C',
     }
 
-    for n, f in mimes.items():
-        if f(d):
+    for n, fn in mimes.items():
+        if fn(d):
             return n
 
     raise Exception(f'File {filename} download failed, output is a unknown file type')
 
 
 if system() == 'Windows':
+
     class Win32ExtractError(Exception):
         pass
 
@@ -44,7 +48,9 @@ if system() == 'Windows':
         'application/zip': _win32_extract,
         'application/x-7z-compressed+bcj2': _win32_extract,
     }
+
 else:
+
     def _7zip_bcj2_workaround(f: str, p: str) -> None:
         if run(['7z', 'x', '-y', f'-o{p}', f]).returncode != 0:
             raise RuntimeError(f'7z error while decompressing {f}')
@@ -53,22 +59,23 @@ else:
         try:
             SevenZipFile(f).extractall(p)
         except UnsupportedCompressionMethodError as e:
-            print(e.message)
+            print(e)
             print("Fallback to 7z binary for extraction.")
             _7zip_bcj2_workaround(f, p)
 
-     def _rar_extract(f: str, p: str) -> None:
+    def _rar_extract(f: str, p: str) -> None:
         if RarFile is not None:
-            RarFile(f'{f}').extractall(f'{p}')
+            RarFile(f).extractall(p)
         else:
-            _7zip_extractall(f,p);
+            _7zip_extractall(f, p)
 
     _extract_func_dict = {
         'application/x-7z-compressed': _7zip_extractall,
-        'application/x-rar': lambda f, p: RarFile(f'{f}').extractall(f'{p}'),
+        'application/x-rar': _rar_extract,
         'application/zip': lambda f, p: ZipFile(f).extractall(p),
-        'application/x-7z-compressed+bcj2': _7zip_bcj2_workaround
+        'application/x-7z-compressed+bcj2': _7zip_bcj2_workaround,
     }
+
 
 def extract_archive(filename: str, path: str, mime: str = None) -> None:
     mime = mime or get_mime_from_file(filename)
