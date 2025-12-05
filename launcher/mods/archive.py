@@ -3,9 +3,11 @@ from py7zr import SevenZipFile
 from subprocess import run
 from typing import List
 from py7zr.exceptions import UnsupportedCompressionMethodError
-from unrar.rarfile import RarFile
+try:
+    from unrar.rarfile import RarFile
+except Exception:
+    RarFile = None
 from zipfile import ZipFile
-
 
 def get_mime_from_file(filename) -> str:
     with open(filename, 'rb') as f:
@@ -55,6 +57,12 @@ else:
             print("Fallback to 7z binary for extraction.")
             _7zip_bcj2_workaround(f, p)
 
+     def _rar_extract(f: str, p: str) -> None:
+        if RarFile is not None:
+            RarFile(f'{f}').extractall(f'{p}')
+        else:
+            _7zip_extractall(f,p);
+
     _extract_func_dict = {
         'application/x-7z-compressed': _7zip_extractall,
         'application/x-rar': lambda f, p: RarFile(f'{f}').extractall(f'{p}'),
@@ -62,16 +70,6 @@ else:
         'application/x-7z-compressed+bcj2': _7zip_bcj2_workaround
     }
 
-
 def extract_archive(filename: str, path: str, mime: str = None) -> None:
     mime = mime or get_mime_from_file(filename)
     _extract_func_dict.get(mime)(filename, path)
-
-
-def list_archive_content(filename: str, mime: str = None) -> List[str]:
-    mime = mime or get_mime_from_file(filename)
-    return {
-        'application/x-7z-compressed': lambda f: SevenZipFile(f).getnames(),
-        'application/x-rar': lambda f: RarFile(f).namelist(),
-        'application/zip': lambda f: ZipFile(f).namelist(),
-    }.get(mime)(filename)
