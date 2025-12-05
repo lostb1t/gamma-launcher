@@ -1,7 +1,6 @@
 from platform import system
 from py7zr import SevenZipFile
 from subprocess import run
-from typing import List
 from py7zr.exceptions import UnsupportedCompressionMethodError
 
 try:
